@@ -1,0 +1,89 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vite + Vue</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Speech Recognition Demo</title>
+</head>
+
+<body>
+  <h1>Speech Recognition Demo</h1>
+  <p>Click the button and say something:</p>
+  <button id="start-btn">Start</button>
+  <p>Result:</p>
+  <p id="result"></p>
+  <p>Click the button to play:</p>
+  <button id="play-btn">Play</button>
+
+  <script>
+    // 创建语音识别对象
+    const recognition = new webkitSpeechRecognition();
+
+    // 设置语音识别参数
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // 监听语音识别结果
+    recognition.onresult = (event) => {
+      const result = event.results[0][0].transcript;
+      document.getElementById('result').textContent = result;
+      console.log(`You said: ${result}`);
+      // 将语音转换为MP3格式并保存到本地
+      const audioContext = new AudioContext();
+      const source = audioContext.createBufferSource();
+      const request = new XMLHttpRequest();
+      request.open('GET', 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encodeURIComponent(result) + '&tl=en&total=1&idx=0&textlen=' + result.length + '&client=tw-ob&prev=input&ttsspeed=1', true);
+      request.responseType = 'arraybuffer';
+      request.onload = () => {
+        audioContext.decodeAudioData(request.response, (buffer) => {
+          source.buffer = buffer;
+          const encoder = new Mp3LameEncoder(audioContext.sampleRate, 128);
+          encoder.encode([source.buffer.getChannelData(0)]);
+          const blob = encoder.finish();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'speech.mp3';
+          document.body.appendChild(link);
+          link.click();
+        });
+      };
+      request.send();
+    };
+
+    // 监听语音识别错误
+    recognition.onerror = (event) => {
+      console.error(`Speech recognition error: ${event.error}`);
+    };
+
+    // 点击按钮开始语音识别
+    document.getElementById('start-btn').addEventListener('click', () => {
+      recognition.start();
+    });
+
+    // 点击按钮播放语音
+    document.getElementById('play-btn').addEventListener('click', () => {
+      const msg = new SpeechSynthesisUtterance(document.getElementById('result').textContent);
+      window.speechSynthesis.speak(msg);
+    });
+  </script>
+</body>
+
+</html>
